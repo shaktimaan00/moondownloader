@@ -767,7 +767,11 @@ class Engine:
         recent = [(t, b) for t, b in snap if t > now - 3.0]
         if len(recent) > 1:
             span = max(min(3.0,now - t0),0.05)
-            mbs = sum(b for _, b in recent) / span / 1_048_576
+            # Decimal MB/s, the unit both front-ends label this with: they print
+            # "MB/s" and scale down to KB/s by 1024. Dividing by 1_048_576 here
+            # made the aggregate read 4.9% below the per-file rates printed
+            # beside it, for the same run. See #84.
+            mbs = sum(b for _, b in recent) / span / 1e6
         else:
             mbs = 0.0
 
@@ -775,7 +779,7 @@ class Engine:
         files_remaining  = dl_tot - dl_done
         if mbs > 0.1 and files_remaining > 0 and dl_done > 0:
             avg_file = total_downloaded / dl_done
-            eta = min(files_remaining * avg_file / (mbs * 1_048_576), 7200)
+            eta = min(files_remaining * avg_file / (mbs * 1e6), 7200)
         else:
             eta = 0.0
 
